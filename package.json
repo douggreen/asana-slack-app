@@ -1,0 +1,23 @@
+{
+  "name": "slack-asana-linker",
+  "version": "1.0.0",
+  "description": "Slack bot that converts #A<task_id> to Asana links",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js"
+  },
+  "keywords": ["slack", "asana", "bot"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@slack/bolt": "^3.17.1",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
