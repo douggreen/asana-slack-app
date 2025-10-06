@@ -44,10 +44,14 @@ Make sure your bot has:
 
 #### D. Event Subscriptions
 1. Enable **Event Subscriptions**
-2. Subscribe to bot events:
+2. **Important**: If you see a "Request URL" field, Socket Mode isn't fully activated yet
+   - Go back to **"Socket Mode"** and toggle it OFF then back ON
+   - Refresh the Event Subscriptions page (Ctrl+F5 / Cmd+Shift+R)
+   - The Request URL field should disappear
+3. Subscribe to bot events:
    - `message.channels` - Listen to channel messages
-3. **No Request URL needed!** (Socket Mode handles this)
-4. Click **"Save Changes"**
+4. **No Request URL needed!** (Socket Mode handles this)
+5. Click **"Save Changes"**
 
 ### 3. Configure Environment Variables
 
