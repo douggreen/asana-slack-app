@@ -1,12 +1,11 @@
 const { App } = require('@slack/bolt');
 require('dotenv').config();
 
-// Initialize the app with your bot token and signing secret
+// Initialize the app with Socket Mode
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
-  signingSecret: process.env.SLACK_SIGNING_SECRET,
-  socketMode: false, // Set to true if using Socket Mode instead of HTTP
-  port: process.env.PORT || 3000
+  appToken: process.env.SLACK_APP_TOKEN, // App-level token for Socket Mode
+  socketMode: true, // Enable Socket Mode
 });
 
 // Regular expression to match #A followed by digits
@@ -60,8 +59,8 @@ app.message(async ({ message, say }) => {
 (async () => {
   try {
     await app.start();
-    console.log('⚡️ Asana Linker bot is running!');
-    console.log(`🚀 Server listening on port ${process.env.PORT || 3000}`);
+    console.log('⚡️ Asana Linker bot is running in Socket Mode!');
+    console.log('🔌 Connected to Slack via WebSocket');
   } catch (error) {
     console.error('Failed to start app:', error);
     process.exit(1);
