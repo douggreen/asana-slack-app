@@ -15,6 +15,18 @@ const ASANA_PATTERN = /#A(\d+)/g;
 // Check if Asana API is configured
 const ASANA_ENABLED = !!process.env.ASANA_ACCESS_TOKEN;
 
+// Parse DISPLAY configuration (defaults to all fields)
+const DEFAULT_DISPLAY = 'link,completed,assignee,due_on,projects';
+const DISPLAY_FIELDS = (process.env.DISPLAY || DEFAULT_DISPLAY)
+  .split(',')
+  .map(field => field.trim().toLowerCase())
+  .filter(field => field.length > 0);
+
+// Helper to check if a field should be displayed
+function shouldDisplay(field) {
+  return DISPLAY_FIELDS.includes(field);
+}
+
 // Fetch task details from Asana API
 async function getAsanaTaskDetails(taskId) {
   if (!ASANA_ENABLED) {
@@ -52,31 +64,41 @@ function formatTaskDetails(taskId, taskDetails) {
   
   if (!taskDetails) {
     // No API token or API error - just return the link
-    return `📎 <${asanaUrl}|#A${taskId}>`;
+    return `<${asanaUrl}|#A${taskId}>`;
   }
 
   if (taskDetails.error) {
-    return `📎 <${asanaUrl}|#A${taskId}> _(${taskDetails.error})_`;
+    return `<${asanaUrl}|#A${taskId}> _(${taskDetails.error})_`;
   }
 
-  // Build rich format with task details
-  let parts = [`📎 <${asanaUrl}|*${taskDetails.name || 'Untitled'}*>`];
+  // Build rich format with task details based on DISPLAY configuration
+  let parts = [];
   
-  if (taskDetails.completed) {
+  // Link is always first if enabled
+  if (shouldDisplay('link')) {
+    parts.push(`<${asanaUrl}|*${taskDetails.name || 'Untitled'}*>`);
+  }
+  
+  if (shouldDisplay('completed') && taskDetails.completed) {
     parts.push('✅ Completed');
   }
   
-  if (taskDetails.assignee?.name) {
+  if (shouldDisplay('assignee') && taskDetails.assignee?.name) {
     parts.push(`👤 ${taskDetails.assignee.name}`);
   }
   
-  if (taskDetails.due_on) {
+  if (shouldDisplay('due_on') && taskDetails.due_on) {
     parts.push(`📅 Due: ${taskDetails.due_on}`);
   }
   
-  if (taskDetails.projects && taskDetails.projects.length > 0) {
+  if (shouldDisplay('projects') && taskDetails.projects && taskDetails.projects.length > 0) {
     const projectName = taskDetails.projects[0].name;
     parts.push(`📁 ${projectName}`);
+  }
+
+  // If no parts were added (all fields disabled), at least show the link
+  if (parts.length === 0) {
+    return `<${asanaUrl}|#A${taskId}>`;
   }
 
   return parts.join(' • ');
@@ -109,7 +131,7 @@ app.message(async ({ message, say }) => {
   if (taskIds.length === 1) {
     responseText = formatTaskDetails(taskIds[0], taskDetailsArray[0]);
   } else {
-    responseText = '📎 *Asana tickets:*\n';
+    responseText = '*Asana tickets:*\n';
     taskIds.forEach((taskId, index) => {
       responseText += `• ${formatTaskDetails(taskId, taskDetailsArray[index])}\n`;
     });
@@ -137,7 +159,7 @@ app.message(async ({ message, say }) => {
     // Display Asana API status
     if (ASANA_ENABLED) {
       console.log('✅ Asana API integration ENABLED');
-      console.log('   Bot will show: Task title, assignee, due date, status, project');
+      console.log(`   Display fields: ${DISPLAY_FIELDS.join(', ')}`);
     } else {
       console.log('ℹ️  Asana API integration DISABLED');
       console.log('   Bot will show: Clickable links only');

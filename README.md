@@ -5,6 +5,7 @@ Automatically converts `#A<task_id>` references into clickable Asana links in Sl
 **Features:**
 - ✅ Works immediately with just clickable links
 - ✅ Optional: Add Asana API token to show task details (title, assignee, due date, status, project)
+- ✅ Configurable display: Choose which fields to show
 - ✅ Socket Mode - no public URL or deployment needed
 - ✅ Works in public and private channels
 - ✅ Replies in thread (keeps channels clean)
@@ -66,6 +67,10 @@ SLACK_APP_TOKEN=xapp-your-app-level-token-here
 
 # Optional: Show rich task details
 ASANA_ACCESS_TOKEN=
+
+# Optional: Customize which fields to display (default: all fields)
+# Options: link, completed, assignee, due_on, projects
+# DISPLAY=link,completed,assignee,due_on,projects
 ```
 
 ### 4. Run the Bot
@@ -89,7 +94,7 @@ You'll see:
 ### 5. Use in Slack
 1. Invite bot to a channel: `/invite @YourBotName`
 2. Post a message: `Working on #A1211411476112291`
-3. Bot replies in thread: `📎 Asana ticket: #A1211411476112291` (clickable link)
+3. Bot replies in thread: `#A1211411476112291` (clickable link)
 
 ---
 
@@ -117,13 +122,66 @@ npm start
 You'll now see:
 ```
 ✅ Asana API integration ENABLED
-   Bot will show: Task title, assignee, due date, status, project
+   Display fields: link, completed, assignee, due_on, projects
 ```
 
 **Example output with API enabled:**
 ```
-📎 Fix login bug • ✅ Completed • 👤 John Smith • 📅 Due: 2025-10-15 • 📁 Mobile App
+Fix login bug • ✅ Completed • 👤 John Smith • 📅 Due: 2025-10-15 • 📁 Mobile App
 ```
+
+---
+
+## Customize Display Fields
+
+You can control which task details are shown by setting the `DISPLAY` environment variable.
+
+### Configuration Options
+
+Add to your `.env` file:
+```bash
+# Show all fields (default)
+DISPLAY=link,completed,assignee,due_on,projects
+
+# Show only link and assignee
+DISPLAY=link,assignee
+
+# Show only the link (minimal)
+DISPLAY=link
+
+# Show everything except projects
+DISPLAY=link,completed,assignee,due_on
+```
+
+### Available Fields
+
+- **`link`** - Task name and clickable link (recommended to always include)
+- **`completed`** - Shows ✅ Completed status
+- **`assignee`** - Shows 👤 assignee name
+- **`due_on`** - Shows 📅 due date
+- **`projects`** - Shows 📁 project name
+
+### Examples
+
+**Minimal display (just clickable link):**
+```bash
+DISPLAY=link
+```
+Output: `Fix login bug`
+
+**Show only completion status:**
+```bash
+DISPLAY=link,completed
+```
+Output: `Fix login bug • ✅ Completed`
+
+**Show assignment and due date:**
+```bash
+DISPLAY=link,assignee,due_on
+```
+Output: `Fix login bug • 👤 John Smith • 📅 Due: 2025-10-15`
+
+**Note:** If you don't set `DISPLAY`, all fields will be shown by default.
 
 ---
 
@@ -220,6 +278,12 @@ npm start
 - `SLACK_APP_TOKEN` should start with `xapp-`
 - `ASANA_ACCESS_TOKEN` should start with `1/`
 
+### Display fields not working
+- Check that field names are spelled correctly
+- Use lowercase field names
+- Separate multiple fields with commas (no spaces recommended)
+- Valid fields: `link`, `completed`, `assignee`, `due_on`, `projects`
+
 ---
 
 ## How It Works
@@ -227,8 +291,9 @@ npm start
 1. Bot listens for messages in channels (via Socket Mode WebSocket connection)
 2. Scans for `#A<digits>` pattern (e.g., `#A1211411476112291`)
 3. If Asana token configured: Fetches task details via Asana API
-4. Posts threaded reply with link (and details if available)
-5. Multiple tickets in one message? Shows them all!
+4. Respects `DISPLAY` configuration to show only requested fields
+5. Posts threaded reply with formatted information
+6. Multiple tickets in one message? Shows them all!
 
 **Pattern recognized:** `#A` followed by any digits
 **Example:** `#A1211411476112291`, `#A123`, `#A999999999999999`
@@ -244,7 +309,7 @@ A: No! The bot works with just links. Asana API is optional for rich details.
 A: Yes! Add `message.im` to Event Subscriptions.
 
 **Q: Can I customize the format?**
-A: Yes! Edit the `formatTaskDetails()` function in `app.js`.
+A: Yes! Use the `DISPLAY` environment variable to choose which fields to show, or edit the `formatTaskDetails()` function in `app.js` for deeper customization.
 
 **Q: What about rate limits?**
 A: Asana allows 150 requests/minute. For normal team usage, you won't hit this.
@@ -254,6 +319,9 @@ A: Keep it in `.env` (gitignored). Don't commit it to version control.
 
 **Q: Can multiple teams use this?**
 A: Yes, but each needs their own Slack app and bot instance.
+
+**Q: Can I hide certain fields?**
+A: Yes! Use the `DISPLAY` setting. For example, `DISPLAY=link,assignee` shows only the task name and assignee.
 
 ---
 
