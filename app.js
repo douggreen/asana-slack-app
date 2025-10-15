@@ -16,7 +16,7 @@ const ASANA_PATTERN = /#A(\d+)/g;
 const ASANA_ENABLED = !!process.env.ASANA_ACCESS_TOKEN;
 
 // Parse DISPLAY configuration (defaults to all fields)
-const DEFAULT_DISPLAY = 'link,completed,assignee,due_on,projects';
+const DEFAULT_DISPLAY = 'link,ticket,completed,assignee,due_on,projects';
 const DISPLAY_FIELDS = (process.env.DISPLAY || DEFAULT_DISPLAY)
   .split(',')
   .map(field => field.trim().toLowerCase())
@@ -61,7 +61,7 @@ async function getAsanaTaskDetails(taskId) {
 // Format task details for Slack
 function formatTaskDetails(taskId, taskDetails) {
   const asanaUrl = `https://app.asana.com/0/${taskId}/${taskId}`;
-  
+
   if (!taskDetails) {
     // No API token or API error - just return the link
     return `<${asanaUrl}|#A${taskId}>`;
@@ -73,24 +73,29 @@ function formatTaskDetails(taskId, taskDetails) {
 
   // Build rich format with task details based on DISPLAY configuration
   let parts = [];
-  
+
   // Link is always first if enabled
   if (shouldDisplay('link')) {
     parts.push(`<${asanaUrl}|*${taskDetails.name || 'Untitled'}*>`);
   }
-  
+
+  // Ticket number
+  if (shouldDisplay('ticket')) {
+    parts.push(`#A${taskId}`);
+  }
+
   if (shouldDisplay('completed') && taskDetails.completed) {
     parts.push('✅ Completed');
   }
-  
+
   if (shouldDisplay('assignee') && taskDetails.assignee?.name) {
     parts.push(`👤 ${taskDetails.assignee.name}`);
   }
-  
+
   if (shouldDisplay('due_on') && taskDetails.due_on) {
     parts.push(`📅 Due: ${taskDetails.due_on}`);
   }
-  
+
   if (shouldDisplay('projects') && taskDetails.projects && taskDetails.projects.length > 0) {
     const projectName = taskDetails.projects[0].name;
     parts.push(`📁 ${projectName}`);
@@ -113,21 +118,21 @@ app.message(async ({ message, say }) => {
 
   // Find all Asana ticket references in the message
   const matches = [...message.text.matchAll(ASANA_PATTERN)];
-  
+
   if (matches.length === 0) {
     return;
   }
 
   // Extract unique task IDs
   const taskIds = [...new Set(matches.map(match => match[1]))];
-  
+
   // Fetch details for all tasks (if API token is configured)
   const taskDetailsPromises = taskIds.map(taskId => getAsanaTaskDetails(taskId));
   const taskDetailsArray = await Promise.all(taskDetailsPromises);
-  
+
   // Build response message
   let responseText = '';
-  
+
   if (taskIds.length === 1) {
     responseText = formatTaskDetails(taskIds[0], taskDetailsArray[0]);
   } else {
@@ -155,7 +160,7 @@ app.message(async ({ message, say }) => {
     await app.start();
     console.log('⚡️ Asana Linker bot is running!');
     console.log('');
-    
+
     // Display Asana API status
     if (ASANA_ENABLED) {
       console.log('✅ Asana API integration ENABLED');
@@ -174,10 +179,10 @@ app.message(async ({ message, say }) => {
     // Optional: Post startup message to test channel
     if (process.env.TEST_CHANNEL_ID) {
       try {
-        const statusMsg = ASANA_ENABLED 
+        const statusMsg = ASANA_ENABLED
           ? '🤖 Asana Linker bot has started! (with task details enabled)'
           : '🤖 Asana Linker bot has started! (showing links only - add ASANA_ACCESS_TOKEN for task details)';
-        
+
         await app.client.chat.postMessage({
           token: process.env.SLACK_BOT_TOKEN,
           channel: process.env.TEST_CHANNEL_ID,

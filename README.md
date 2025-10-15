@@ -122,12 +122,12 @@ npm start
 You'll now see:
 ```
 ✅ Asana API integration ENABLED
-   Display fields: link, completed, assignee, due_on, projects
+   Display fields: link, ticket, completed, assignee, due_on, projects
 ```
 
 **Example output with API enabled:**
 ```
-Fix login bug • ✅ Completed • 👤 John Smith • 📅 Due: 2025-10-15 • 📁 Mobile App
+Fix login bug • #A1211411476112291 • ✅ Completed • 👤 John Smith • 📅 Due: 2025-10-15 • 📁 Mobile App
 ```
 
 ---
@@ -141,7 +141,7 @@ You can control which task details are shown by setting the `DISPLAY` environmen
 Add to your `.env` file:
 ```bash
 # Show all fields (default)
-DISPLAY=link,completed,assignee,due_on,projects
+DISPLAY=link,ticket,completed,assignee,due_on,projects
 
 # Show only link and assignee
 DISPLAY=link,assignee
@@ -149,13 +149,17 @@ DISPLAY=link,assignee
 # Show only the link (minimal)
 DISPLAY=link
 
+# Show link with ticket number
+DISPLAY=link,ticket
+
 # Show everything except projects
-DISPLAY=link,completed,assignee,due_on
+DISPLAY=link,ticket,completed,assignee,due_on
 ```
 
 ### Available Fields
 
 - **`link`** - Task name and clickable link (recommended to always include)
+- **`ticket`** - Task ID/ticket number (e.g., #A1211411476112291)
 - **`completed`** - Shows ✅ Completed status
 - **`assignee`** - Shows 👤 assignee name
 - **`due_on`** - Shows 📅 due date
@@ -169,17 +173,23 @@ DISPLAY=link
 ```
 Output: `Fix login bug`
 
+**Show link with ticket number:**
+```bash
+DISPLAY=link,ticket
+```
+Output: `Fix login bug • #A1211411476112291`
+
 **Show only completion status:**
 ```bash
 DISPLAY=link,completed
 ```
 Output: `Fix login bug • ✅ Completed`
 
-**Show assignment and due date:**
+**Show assignment and due date with ticket:**
 ```bash
-DISPLAY=link,assignee,due_on
+DISPLAY=link,ticket,assignee,due_on
 ```
-Output: `Fix login bug • 👤 John Smith • 📅 Due: 2025-10-15`
+Output: `Fix login bug • #A1211411476112291 • 👤 John Smith • 📅 Due: 2025-10-15`
 
 **Note:** If you don't set `DISPLAY`, all fields will be shown by default.
 
@@ -282,7 +292,7 @@ npm start
 - Check that field names are spelled correctly
 - Use lowercase field names
 - Separate multiple fields with commas (no spaces recommended)
-- Valid fields: `link`, `completed`, `assignee`, `due_on`, `projects`
+- Valid fields: `link`, `ticket`, `completed`, `assignee`, `due_on`, `projects`
 
 ---
 
@@ -321,7 +331,7 @@ A: Keep it in `.env` (gitignored). Don't commit it to version control.
 A: Yes, but each needs their own Slack app and bot instance.
 
 **Q: Can I hide certain fields?**
-A: Yes! Use the `DISPLAY` setting. For example, `DISPLAY=link,assignee` shows only the task name and assignee.
+A: Yes! Use the `DISPLAY` setting. For example, `DISPLAY=link,ticket,assignee` shows only the task name, ticket number, and assignee.
 
 ---
 
