@@ -112,7 +112,7 @@ function formatTaskDetails(taskId, taskDetails) {
 // Listen for messages in channels
 app.message(async ({ message, say }) => {
   // Only process messages with text (ignore bot messages, etc.)
-  if (!message.text || message.subtype) {
+  if (!message.text || message.subtype || message.bot_id) {
     return;
   }
 
