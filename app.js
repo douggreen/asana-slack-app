@@ -12,6 +12,11 @@ const app = new App({
 // Regular expression to match #A followed by digits
 const ASANA_PATTERN = /#A(\d+)/g;
 
+// Store mapping between original message timestamps and bot reply timestamps
+// Key: original message ts, Value: { channel: channel_id, reply_ts: bot_reply_ts }
+// Note: In production, use Redis or a database for persistence
+const messageMap = new Map();
+
 // Check if Asana API is configured
 const ASANA_ENABLED = !!process.env.ASANA_ACCESS_TOKEN;
 
@@ -144,13 +149,60 @@ app.message(async ({ message, say }) => {
 
   // Post response as a threaded reply
   try {
-    await say({
+    const response = await say({
       text: responseText,
       thread_ts: message.ts,
       unfurl_links: false
     });
+
+    // Store the mapping for deletion tracking
+    if (response && response.ts) {
+      messageMap.set(message.ts, {
+        channel: message.channel,
+        reply_ts: response.ts
+      });
+    }
   } catch (error) {
     console.error('Error posting message:', error);
+  }
+});
+
+// Listen for message deletions
+app.message(async ({ message, client }) => {
+  // Only process deletion events
+  if (message.subtype !== 'message_deleted') {
+    return;
+  }
+
+  // Check if we have a bot reply for the deleted message
+  const deletedMessageTs = message.deleted_ts;
+  const botReply = messageMap.get(deletedMessageTs);
+
+  if (!botReply) {
+    return; // No bot reply to update
+  }
+
+  try {
+    // Option 1: Delete the bot's reply entirely (uncomment to use)
+    // await client.chat.delete({
+    //   token: process.env.SLACK_BOT_TOKEN,
+    //   channel: botReply.channel,
+    //   ts: botReply.reply_ts
+    // });
+
+    // Option 2: Update the bot's reply to indicate deletion (default)
+    await client.chat.update({
+      token: process.env.SLACK_BOT_TOKEN,
+      channel: botReply.channel,
+      ts: botReply.reply_ts,
+      text: '_(Original message containing Asana ticket reference was deleted)_'
+    });
+
+    // Clean up the mapping
+    messageMap.delete(deletedMessageTs);
+    console.log(`✅ Updated bot reply for deleted message: ${deletedMessageTs}`);
+  } catch (error) {
+    console.error('Error handling message deletion:', error.message);
   }
 });
 
