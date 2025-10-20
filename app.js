@@ -206,6 +206,78 @@ app.message(async ({ message, client }) => {
   }
 });
 
+// Listen for message edits/updates
+app.message(async ({ message, client, say }) => {
+  // Only process edit events
+  if (message.subtype !== 'message_changed') {
+    return;
+  }
+
+  // Extract the edited message details
+  const editedMessage = message.message;
+  const originalTs = editedMessage.ts;
+
+  // Check if we have a bot reply for this message
+  const botReply = messageMap.get(originalTs);
+
+  if (!botReply) {
+    return; // No bot reply to update
+  }
+
+  // Check if the edited message still contains Asana ticket references
+  const matches = editedMessage.text ? [...editedMessage.text.matchAll(ASANA_PATTERN)] : [];
+
+  try {
+    if (matches.length === 0) {
+      // No more Asana references - update to show they were removed
+      await client.chat.update({
+        token: process.env.SLACK_BOT_TOKEN,
+        channel: botReply.channel,
+        ts: botReply.reply_ts,
+        text: '_(Original message edited - Asana ticket references removed)_'
+      });
+
+      // Clean up the mapping
+      messageMap.delete(originalTs);
+      console.log(`✅ Updated bot reply for edited message (references removed): ${originalTs}`);
+    } else {
+      // Still has Asana references - regenerate the response
+      const taskIds = [...new Set(matches.map(match => match[1]))];
+
+      // Fetch details for all tasks
+      const taskDetailsPromises = taskIds.map(taskId => getAsanaTaskDetails(taskId));
+      const taskDetailsArray = await Promise.all(taskDetailsPromises);
+
+      // Build response message
+      let responseText = '';
+
+      if (taskIds.length === 1) {
+        responseText = formatTaskDetails(taskIds[0], taskDetailsArray[0]);
+      } else {
+        responseText = '*Asana tickets:*\n';
+        taskIds.forEach((taskId, index) => {
+          responseText += `• ${formatTaskDetails(taskId, taskDetailsArray[index])}\n`;
+        });
+      }
+
+      // Add note that this was from an edited message
+      responseText += '\n_(Updated: original message was edited)_';
+
+      // Update the bot's reply
+      await client.chat.update({
+        token: process.env.SLACK_BOT_TOKEN,
+        channel: botReply.channel,
+        ts: botReply.reply_ts,
+        text: responseText
+      });
+
+      console.log(`✅ Updated bot reply for edited message: ${originalTs}`);
+    }
+  } catch (error) {
+    console.error('Error handling message edit:', error.message);
+  }
+});
+
 // Start the app
 (async () => {
   try {
